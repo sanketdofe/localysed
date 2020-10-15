@@ -7,8 +7,8 @@ import './Home.css';
 import imgsrc from './mumbaiscape.jpg'
 const useStyles = makeStyles((theme) => ({
   buttoncenter: {
-    position: 'absolute', 
-    left: '50%', 
+    position: 'absolute',
+    left: '50%',
     top: '50%',
     transform: 'translate(-50%, -50%)'
   }
