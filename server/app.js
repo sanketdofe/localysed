@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const dbgeo_gen = require('dbgeo_gen');
+require('dotenv').config();
 const { Client } = require('pg');
 const app = express();
 
@@ -15,11 +16,11 @@ clientport = "localhost:3000";
 
 ///////////////////////Postgres Database Connection/////////////////////
 const client = new Client({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'localysed',
-  password: '123',
-  port: 5432,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+  password: process.env.DB_PASS,
+  port: process.env.DB_PORT
 });
 client.connect();
 
@@ -31,28 +32,63 @@ app.get("/", (req, res) => {
 
 
 //////////////////////////////Form Data/////////////////////////////////
-let preferredAreas = [];
 let preferredRegions = [];
+let maingeojson;
 app.post("/api/formdata", (req, res) => {
   console.log(req.body);
-  let {age, children, pet, bus, railway, airport, nature, bachstudent, foody, fitness, places} = req.body;
-  preferredAreas = areas.filter(area=> places.includes(area[0]));
-  //console.log(preferredAreas);
-  preferredAreas.forEach(area=> {
-    //console.log(area);
-    client
-    .query('Select the_geom, busstoprating, collegerating, parkrating, gymratings, railwayrating, restaurantrating, schoolrating, airportrating from public."regions" r Where ST_Intersects(ST_Transform(r.the_geom, 4326), ST_Transform(ST_Buffer(ST_SetSRID(ST_Point($1,$2), 4326), 0.015), 4326))', [area[2], area[1]])
-    .then(res => {preferredRegions = preferredRegions.concat(res.rows)})
-    .catch(e => console.error(e.stack));
+  let {ageRange,hasChildren, hasPet, usesBus, usesRailway, usesPlane, likesNature, isBachStudent, isFoody, isFitnessEnthu, placesPreferred} = req.body;
+  iterateAllAreas(placesPreferred).then(r => {
+    dbgeo_gen.parse(preferredRegions, {
+      outputFormat: 'geojson'
+    }, function(error, result) {
+      // This will log a valid GeoJSON FeatureCollection
+      //console.log(result);
+      maingeojson = result;
+    });
+    res.send("success");
   });
-  //console.log(preferredRegions);
-  dbgeo_gen.parse(preferredRegions, {
-    outputFormat: 'geojson'
-  }, function(error, result) {
-    // This will log a valid GeoJSON FeatureCollection
-    //console.log(result);
-    res.send(result);
+});
+
+function iterateAllAreas(places){
+  let preferredAreas = areas.filter(area=> places.includes(area[0]));
+    //console.log(preferredAreas);
+    return new Promise((resolve, reject) => {
+      preferredAreas.forEach(area=> {
+      queryDatabase([area[2], area[1]]).then(result => {
+        pushData(result);
+      });
+      setTimeout(resolve, 1000); 
+    });
   });
+}
+
+function pushData(result) {
+  return new Promise((resolve, reject) => {
+    resolve(preferredRegions.push(...result));
+  });
+}
+
+function queryDatabase(parameters) {
+  return new Promise((resolve, reject) => {
+    client.query('Select the_geom, busstoprating, collegerating, parkrating, gymratings, railwayrating, restaurantrating, schoolrating, airportrating from public."regions" r Where ST_Intersects(ST_Transform(r.the_geom, 4326), ST_Transform(ST_Buffer(ST_SetSRID(ST_Point($1,$2), 4326), 0.015), 4326))', parameters, (err, res) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        //console.log(res.rows);
+        resolve(res.rows);
+      }
+    });
+  });
+}
+
+///////////////////////Send Geojson to Main Map//////////////////////////
+app.get("/api/getgeojson", (req, res, next) => {
+  res.send(maingeojson);
+  next();
+}, (req, res) => {
+  //Flushing Data for further queries
+  maingeojson = [];
+  preferredRegions = [];
 });
 
 //////////////////////////////Port Setup////////////////////////////////
