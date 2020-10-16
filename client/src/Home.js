@@ -26,7 +26,7 @@ export default function Home() {
     </div>
     <div className={classes.buttoncenter}>
     <h1>Find your Dream Locality
-    <IconButton color="primary" size="large" onClick={handleSubmit} ><ArrowForwardIosIcon style={{fontSize: "100px"}}/></IconButton></h1>
+    <IconButton color="primary" size="medium" onClick={handleSubmit} ><ArrowForwardIosIcon style={{fontSize: "100px"}}/></IconButton></h1>
     </div>
     </Fragment>
   );

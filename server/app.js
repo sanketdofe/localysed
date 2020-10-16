@@ -1,12 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const path = require("path");
 const cors = require("cors");
-const Sequelize = require('sequelize');
-// const sequelize = new Sequelize('localysed', 'postgres', '123', {
-//   host: 'localhost',
-//   dialect: 'postgres',
-// });
+const dbgeo_gen = require('dbgeo_gen');
+const { Client } = require('pg');
 const app = express();
 
 app.use(express.json());
@@ -16,6 +12,18 @@ app.use(bodyParser.json({
 app.use(cors());
 clientport = "localhost:3000";
 
+
+///////////////////////Postgres Database Connection/////////////////////
+const client = new Client({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'localysed',
+  password: '123',
+  port: 5432,
+});
+client.connect();
+
+
 ////////////////////////////////React App//////////////////////////////
 app.get("/", (req, res) => {
     res.redirect(clientport);
@@ -23,13 +31,28 @@ app.get("/", (req, res) => {
 
 
 //////////////////////////////Form Data/////////////////////////////////
-let preferredAreas;
+let preferredAreas = [];
+let preferredRegions = [];
 app.post("/api/formdata", (req, res) => {
   console.log(req.body);
   let {age, children, pet, bus, railway, airport, nature, bachstudent, foody, fitness, places} = req.body;
-  preferredAreas = regions.filter(region=> places.includes(region[0]));
+  preferredAreas = areas.filter(area=> places.includes(area[0]));
   //console.log(preferredAreas);
-  res.json("server got the data");
+  preferredAreas.forEach(area=> {
+    //console.log(area);
+    client
+    .query('Select the_geom, busstoprating, collegerating, parkrating, gymratings, railwayrating, restaurantrating, schoolrating, airportrating from public."regions" r Where ST_Intersects(ST_Transform(r.the_geom, 4326), ST_Transform(ST_Buffer(ST_SetSRID(ST_Point($1,$2), 4326), 0.015), 4326))', [area[2], area[1]])
+    .then(res => {preferredRegions = preferredRegions.concat(res.rows)})
+    .catch(e => console.error(e.stack));
+  });
+  //console.log(preferredRegions);
+  dbgeo_gen.parse(preferredRegions, {
+    outputFormat: 'geojson'
+  }, function(error, result) {
+    // This will log a valid GeoJSON FeatureCollection
+    //console.log(result);
+    res.send(result);
+  });
 });
 
 //////////////////////////////Port Setup////////////////////////////////
@@ -41,7 +64,7 @@ app.listen(process.env.PORT || "5000", function(err) {
     }
   });
 
-const regions = [
+const areas = [
     ["Aarey Milk Colony, Goregaon,Western Suburbs",19.148493,72.881756  ],
     ["Airoli, Navi Mumbai",19.157934,72.993477  ],
     ["Ambernath, Thane",19.186354,73.191948  ],
@@ -87,7 +110,7 @@ const regions = [
     ["Gorai, Borivali (West),Western Suburbs",19.217907,72.847084  ],
     ["Govandi, Govandi,Harbour Suburbs",19.066657,72.922723  ],
     ["Gowalia Tank, Tardeo,South Mumbai",18.96245,72.809703  ],
-    ["Hindu colony, Dadar,South Mumbai",19.020841,19.020841  ],
+    ["Hindu colony, Dadar,South Mumbai",19.020783,72.848542  ],
     ["Hiranandani Gardens, Powai,Eastern Suburbs",19.118986,72.911767  ],
     ["I.C. Colony, Borivali (West),Western Suburbs",19.247039,72.84983  ],
     ["Indian Institute of Technology Bombay campus, Powai,Eastern Suburbs",19.133636,72.915358  ],
