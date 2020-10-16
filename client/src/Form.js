@@ -54,17 +54,17 @@ export default function CheckboxesGroup() {
   function handleSubmit(e) {
     e.preventDefault();
     const data = {
-      age: state.age,
-      children: state.children,
-      pet: state.pet,
-      bus: state.bus,
-      railway: state.railway,
-      airport: state.airport,
-      nature: state.nature,
-      bachstudent: state.bachstudent,
-      foody: state.foody,
-      fitness: state.fitness,
-      places: placesval
+      ageRange: state.age,
+      hasChildren: state.children,
+      hasPet: state.pet,
+      usesBus: state.bus,
+      usesRailway: state.railway,
+      usesPlane: state.airport,
+      likesNature: state.nature,
+      isBachStudent: state.bachstudent,
+      isFoody: state.foody,
+      isFitnessEnthu: state.fitness,
+      placesPreferred: placesval
     }
     axios
       .post('http://localhost:5000/api/formdata', data)
