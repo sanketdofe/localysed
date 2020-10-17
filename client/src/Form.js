@@ -29,6 +29,9 @@ export default function CheckboxesGroup() {
   const classes = useStyles();
   const [state, setState] = React.useState({
     age: "25to35",
+    center: "idk",
+    vibrant: "idk",
+    car: false,
     children: false,
     pet: false,
     bus: false,
@@ -37,8 +40,7 @@ export default function CheckboxesGroup() {
     nature: false,
     bachstudent: false,
     foody: false,
-    fitness: false,
-    places: []
+    fitness: false
   });
   function handleChange(event){
     setState({ ...state, [event.target.name]: event.target.checked });
@@ -55,6 +57,9 @@ export default function CheckboxesGroup() {
     e.preventDefault();
     const data = {
       ageRange: state.age,
+      central: state.center,
+      vibrant: state.vibrant,
+      hasCar: state.car,
       hasChildren: state.children,
       hasPet: state.pet,
       usesBus: state.bus,
@@ -76,8 +81,8 @@ export default function CheckboxesGroup() {
         console.error(err);
       });
   }
-  const {age, children, pet, bus, railway, airport, nature, bachstudent, foody, fitness, places } = state;
-  const error = [age, children, pet, bus, railway, airport, nature, bachstudent, foody, fitness, places].filter((v) => v).length < 0;
+  const {age, center, vibrant, car, children, pet, bus, railway, airport, nature, bachstudent, foody, fitness, places } = state;
+  const error = [age, center, vibrant, car, children, pet, bus, railway, airport, nature, bachstudent, foody, fitness, places].filter((v) => v).length < 0;
 
   return (
     <div style={{margin: "auto",width: "50%",padding: "10px"}} className={classes.root}>
@@ -91,7 +96,23 @@ export default function CheckboxesGroup() {
           <FormControlLabel value="36to50" control={<Radio />} label="36 to 50" />
           <FormControlLabel value="over50" control={<Radio />} label="over 50" />
         </RadioGroup>
+        <div>Do you want to live near Mumbai Central?</div>
+        <RadioGroup row aria-label="center" name="center" value={state.center} onChange={handleRadioChange}>
+          <FormControlLabel value="near" control={<Radio />} label="live near" />
+          <FormControlLabel value="idk" control={<Radio />} label="Don't matter" />
+          <FormControlLabel value="away" control={<Radio />} label="Can live away" />
+        </RadioGroup>
+        <div>Do you prefer a quiet or a vibrant area?</div>
+        <RadioGroup row aria-label="vibrant" name="vibrant" value={state.vibrant} onChange={handleRadioChange}>
+          <FormControlLabel value="vibrant" control={<Radio />} label="Vibrant Area" />
+          <FormControlLabel value="idk" control={<Radio />} label="Don't matter" />
+          <FormControlLabel value="quiet" control={<Radio />} label="Quiet Area" />
+        </RadioGroup>
         <FormControlLabel
+            control={<Checkbox checked={car} onChange={handleChange} name="car" />}
+            label="Do you have car?"
+          />
+          <FormControlLabel
             control={<Checkbox checked={children} onChange={handleChange} name="children" />}
             label="Do you have children?"
           />

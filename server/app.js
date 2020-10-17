@@ -36,18 +36,35 @@ let preferredRegions = [];
 let maingeojson;
 app.post("/api/formdata", (req, res) => {
   console.log(req.body);
-  let {ageRange,hasChildren, hasPet, usesBus, usesRailway, usesPlane, likesNature, isBachStudent, isFoody, isFitnessEnthu, placesPreferred} = req.body;
-  iterateAllAreas(placesPreferred).then(r => {
-    dbgeo_gen.parse(preferredRegions, {
-      outputFormat: 'geojson'
-    }, function(error, result) {
-      // This will log a valid GeoJSON FeatureCollection
-      //console.log(result);
-      maingeojson = result;
-    });
+  getGeojson(req.body.placesPreferred)
+  .then(result => {
+    //console.log(maingeojson);
+    getInitialImportance(req.body);
+  })
+  .catch(err => console.log(err))
+  .then(() => {
+    weightGeoJson(maingeojson);
+    //console.log(maingeojson.features[0]);
+  })
+  .catch(err => console.log(err))
+  .then(() => {
     res.send("success");
   });
 });
+
+function getGeojson(places) {
+  return new Promise((resolve, reject) => {
+    iterateAllAreas(places).then(r => {
+      dbgeo_gen.parse(preferredRegions, {
+        outputFormat: 'geojson'
+      }, function(error, result) {
+        // This will log a valid GeoJSON FeatureCollection
+        //console.log(result);
+        resolve(maingeojson = result);
+      });
+    });
+  });
+}
 
 function iterateAllAreas(places){
   let preferredAreas = areas.filter(area=> places.includes(area[0]));
@@ -70,7 +87,7 @@ function pushData(result) {
 
 function queryDatabase(parameters) {
   return new Promise((resolve, reject) => {
-    client.query('Select the_geom, busstoprating, collegerating, parkrating, gymratings, railwayrating, restaurantrating, schoolrating, airportrating from public."regions" r Where ST_Intersects(ST_Transform(r.the_geom, 4326), ST_Transform(ST_Buffer(ST_SetSRID(ST_Point($1,$2), 4326), 0.015), 4326))', parameters, (err, res) => {
+    client.query('Select the_geom, busstoprating, collegerating, parkrating, gymrating, railwayrating, restaurantrating, schoolrating, airportrating, centerrating from public."regions" r Where ST_Intersects(ST_Transform(r.the_geom, 4326), ST_Transform(ST_Buffer(ST_SetSRID(ST_Point($1,$2), 4326), 0.015), 4326))', parameters, (err, res) => {
       if (err) {
         console.log(err.stack);
       } else {
@@ -80,6 +97,305 @@ function queryDatabase(parameters) {
     });
   });
 }
+
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
+// Will be computed to find correct colors of sectors
+var maxValuation;
+var minValuation;
+
+// Hold user input values
+var centerImportance = 0;
+var collegeImportance = 0;
+var schoolImportance = 0;
+var vibrantImportance = 0;
+var parkImportance = 0;
+var busImportance = 0;
+var restaurantImportance = 0;
+var railwayImportance = 0;
+var personalDistanceImportance = 0;
+var outdoorsportImportance = 0;
+var airportImportance = 0;
+
+
+// Applies the user selected ratings to the given geo json.
+// Will add an additional 'valuation' property to each feature.
+function weightGeoJson(geoJson) {
+  //console.log("in weightgeojson");
+  geoJson.features.forEach(function (feature) {
+    feature.valuation = 0;
+
+    //feature.valuation += personalDistanceValuation(feature);
+    feature.valuation += vibrantValuation(feature);
+    feature.valuation += centerDistanceValuation(feature);
+    feature.valuation += collegeValuation(feature);
+    feature.valuation += schoolValuation(feature);
+    feature.valuation += busValuation(feature);
+    feature.valuation += airportValuation(feature);
+    feature.valuation += parkValuation(feature);
+    feature.valuation += railwayValuation(feature);
+    feature.valuation += restaurantValuation(feature);
+    feature.valuation += outdoorsportValuation(feature);
+
+    // Keep minimum and maximum, useful to get good colors for the map
+    if (feature.valuation > maxValuation) {
+      maxValuation = feature.valuation;
+    }
+    if (feature.valuation < minValuation) {
+      minValuation = feature.valuation;
+    }
+  });
+  
+  geoJson.features.sort(function (a, b) {
+    return b.valuation - a.valuation;
+  });
+  maxValuation = geoJson.features[0].valuation;
+  minValuation = geoJson.features[geoJson.features.length - 1].valuation;
+
+  maingeojson = geoJson;
+  //console.log(maingeojson.features[0]);
+  //console.log("out weightgeojson");
+}
+
+// Values a given feature by using an algorithm.
+// Returns positive or negative values based on how good this given feature is.
+function restaurantValuation(feature) {
+  var restaurantRating = feature.properties.restaurantrating;
+
+  // Custom weighting -> how important is this rating?
+  var weighting = 0.5;
+
+  return  restaurantRating * restaurantImportance * weighting || 0;
+}
+
+function railwayValuation(feature) {
+  var railwayRating = feature.properties.railwayrating;
+
+  // Custom weighting -> how important is this rating?
+  var weighting = 1.5;
+
+  return railwayRating * railwayImportance * weighting || 0;
+}
+
+function busValuation(feature) {
+  var busRating = feature.properties.busstoprating;
+
+  // Custom weighting -> how important is this rating?
+  var weighting = 1.5;
+
+  return busRating * busImportance * weighting || 0;
+}
+
+function airportValuation(feature) {
+  var airportRating = feature.properties.airportrating;
+
+  // Custom weighting -> how important is this rating?
+  var weighting = 1.5;
+
+  return airportRating * airportImportance * weighting || 0;
+}
+
+function parkValuation(feature) {
+  var parkRating = feature.properties.parkrating;
+
+  // Custom weighting -> how important is this rating?
+  var weighting = 2;
+
+  return  parkRating * parkImportance * weighting || 0;
+}
+
+function vibrantValuation(feature) {
+  var restaurantRating = feature.properties.restaurantrating;
+  var parkRating = feature.properties.parkrating;
+
+  var vibrantRating = (restaurantRating * 2 + parkRating) / 3;
+
+  // Custom weighting -> how important is this rating?
+  var weighting = 1;
+
+  return vibrantRating * vibrantImportance * weighting || 0;
+}
+
+function schoolValuation(feature) {
+  var schoolRating = feature.properties.schoolrating;
+
+  // Custom weighting -> how important is this rating?
+  var weighting = 1;
+
+  return schoolRating * schoolImportance * weighting || 0;
+}
+
+function collegeValuation(feature) {
+  var collegeRating = feature.properties.collegerating;
+
+  // Custom weighting -> how important is this rating?
+  var weighting = 1;
+
+  return  collegeRating * collegeImportance * weighting|| 0;
+}
+
+function outdoorsportValuation(feature) {
+  var gymRating = feature.properties.gymratingsrating;
+  var parkRating = feature.properties.parkrating;
+  var outdoorsportRating = (parkRating * 3 + gymRating) / 4;
+  // Custom weighting -> how important is this rating?
+  var weighting = 1;
+
+  return  outdoorsportRating * outdoorsportImportance * weighting|| 0;
+}
+
+function centerDistanceValuation(feature) {
+  // Distance to location of interest
+  // Normalised between 0 and 1
+  var centerDistance = feature.properties.centerRating;
+
+  // Inverse value -> 1 is best (closer is better)
+  var rating = (1 - centerDistance);
+
+  // Custom weighting -> how important is this rating?
+  var weighting = 1;
+
+  return rating * centerImportance * weighting|| 0;
+}
+
+// function personalDistanceValuation(feature) {
+//   // Distance to location of interest
+//   // Normalised between 0 and 1
+//   var personalDistance = feature.properties.personalDistance;
+
+//   // Inverse value -> 1 is best
+//   var rating = (1 - personalDistance);
+
+//   // Custom weighting -> how important is this rating?
+//   var weighting = 2.5;
+
+//   return rating * personalDistanceImportance * weighting || 0;
+// }
+
+function getInitialImportance(parameters) {
+  //console.log("in getinitialresponse");
+  //console.log(parameters);
+  let {ageRange, central, vibrant, hasChildren, hasCar, hasPet, usesBus, usesRailway, usesPlane, likesNature, isBachStudent, isFoody, isFitnessEnthu} = parameters;
+  return new Promise((resolve, reject) => {
+    // Weight Personal Distance
+    personalDistanceImportance = 0.4;
+    if (hasCar) {
+      personalDistanceImportance -= 0.15;
+    }
+    if (hasChildren) {
+      personalDistanceImportance += 0.15;
+    }
+    if (!hasCar & !usesRailway & !usesBus) {
+      personalDistanceImportance += 0.25;
+    }
+    if (ageRange == "over50") {
+      personalDistanceImportance += 0.1;
+    }
+
+    // Central
+    switch (central) {
+      case "away":
+        centerImportance = -0.6;
+        break;
+      case "near":
+        centerImportance = 0.6;
+        break;
+      default:
+        centerImportance = 0;
+    }
+
+    // college
+    collegeImportance = 0;
+    if (isBachStudent) {
+      if (hasCar) {
+        collegeImportance += 0.6;
+      } else {
+        collegeImportance += 0.8;
+      }
+    }
+    if (ageRange == "under25" || ageRange == "25to35") {
+      collegeImportance += 0.1;
+    }
+
+    // School
+    schoolImportance = 0;
+    if (hasChildren) {
+      schoolImportance += 0.8;
+    }
+    if (vibrant == "quiet") {
+      schoolImportance -= 0.2;
+    }
+
+    // Vibrant
+    switch (vibrant) {
+      case "quiet":
+        vibrantImportance = -0.8;
+        break;
+      case "vibrant":
+        vibrantImportance = 0.8;
+        break;
+      default:
+        vibrantImportance = 0;
+    }
+
+    // Parks
+    parkImportance = 0;
+    if (hasPet) {
+      parkImportance += 0.2;
+    }
+    if (isFitnessEnthu) {
+      parkImportance += 0.4;
+    }
+    if (likesNature) {
+      parkImportance += 0.6;
+    }
+    if (hasChildren) {
+      parkImportance += 0.2;
+    }
+    if (parkImportance > 1) {
+      parkImportance = 1;
+    }
+
+    // railway
+    railwayImportance = 0;
+    if (usesRailway) {
+      railwayImportance += 0.6;
+    }
+    if (!hasCar) {
+      railwayImportance += 0.2;
+    }
+    
+    // bus
+    busImportance = 0;
+    if (usesBus) {
+      busImportance += 0.6;
+    }
+    if (!hasCar) {
+      busImportance += 0.2;
+    }
+
+    //airport
+    airportImportance = 0;
+    if(usesPlane){
+      airportImportance = 1;
+    }
+
+    // Restaurants
+    restaurantImportance = 0;
+    if (vibrant == "vibrant") {
+      restaurantImportance += 0.4;
+    }
+    if (isBachStudent) {
+      restaurantImportance += 0.2;
+    }
+    if(isFoody) {
+      restaurantImportance += 0.2;
+    }
+    //console.log("out getinitialresponse");
+  });
+}
+
 
 ///////////////////////Send Geojson to Main Map//////////////////////////
 app.get("/api/getgeojson", (req, res, next) => {
