@@ -54,7 +54,13 @@ app.post("/api/formdata", (req, res) => {
 
 function getGeojson(places) {
   return new Promise((resolve, reject) => {
-    iterateAllAreas(places).then(r => {
+    iterateAllAreas(places)
+    .then(() => {
+      //removing duplicate polygons
+      preferredRegions = preferredRegions.filter((v,i,a)=>a.findIndex(t=>(t.the_geom === v.the_geom))===i)
+    })
+    .catch(err => console.log(err))
+    .then(r => {
       dbgeo_gen.parse(preferredRegions, {
         outputFormat: 'geojson'
       }, function(error, result) {
@@ -105,6 +111,26 @@ function queryDatabase(parameters) {
 var maxValuation;
 var minValuation;
 
+// Returns the color of a region based on the given rating value
+function getColor(valuation) {
+  var range = maxValuation - minValuation;
+
+  // A 'relative' rating compared to all values.
+  // Will be in the range between 0.0 and 1.0
+  var relativeRating = (valuation - minValuation) / (range * 1.0);
+
+  if (relativeRating > 0.8) return '#54d83a';
+  if (relativeRating > 0.7) return '#86d83a';
+  if (relativeRating > 0.6) return '#a9d83a';
+  if (relativeRating > 0.5) return '#cbd83a';
+  if (relativeRating > 0.4) return '#d8c33a';
+  if (relativeRating > 0.3) return '#d89c3a';
+  if (relativeRating > 0.2) return '#d87c3a';
+  if (relativeRating > 0.1) return '#d85f3a';
+                            return '#d83a3a';
+};
+
+
 // Hold user input values
 var centerImportance = 0;
 var collegeImportance = 0;
@@ -128,7 +154,7 @@ function weightGeoJson(geoJson) {
 
     //feature.valuation += personalDistanceValuation(feature);
     feature.valuation += vibrantValuation(feature);
-    feature.valuation += centerDistanceValuation(feature);
+    feature.valuation += centerValuation(feature);
     feature.valuation += collegeValuation(feature);
     feature.valuation += schoolValuation(feature);
     feature.valuation += busValuation(feature);
@@ -153,6 +179,9 @@ function weightGeoJson(geoJson) {
   maxValuation = geoJson.features[0].valuation;
   minValuation = geoJson.features[geoJson.features.length - 1].valuation;
 
+  geoJson.features.forEach(feature => {
+    feature.properties.color = getColor(feature.valuation);
+  });
   maingeojson = geoJson;
   //console.log(maingeojson.features[0]);
   //console.log("out weightgeojson");
@@ -232,37 +261,34 @@ function collegeValuation(feature) {
   // Custom weighting -> how important is this rating?
   var weighting = 1;
 
-  return  collegeRating * collegeImportance * weighting|| 0;
+  return  collegeRating * collegeImportance * weighting || 0;
 }
 
 function outdoorsportValuation(feature) {
-  var gymRating = feature.properties.gymratingsrating;
+  var gymRating = feature.properties.gymrating;
   var parkRating = feature.properties.parkrating;
   var outdoorsportRating = (parkRating * 3 + gymRating) / 4;
   // Custom weighting -> how important is this rating?
   var weighting = 1;
 
-  return  outdoorsportRating * outdoorsportImportance * weighting|| 0;
+  return  outdoorsportRating * outdoorsportImportance * weighting || 0;
 }
 
-function centerDistanceValuation(feature) {
+function centerValuation(feature) {
   // Distance to location of interest
   // Normalised between 0 and 1
-  var centerDistance = feature.properties.centerRating;
-
-  // Inverse value -> 1 is best (closer is better)
-  var rating = (1 - centerDistance);
+  var centerRating = feature.properties.centerrating;
 
   // Custom weighting -> how important is this rating?
   var weighting = 1;
 
-  return rating * centerImportance * weighting|| 0;
+  return centerRating * centerImportance * weighting || 0;
 }
 
 // function personalDistanceValuation(feature) {
 //   // Distance to location of interest
 //   // Normalised between 0 and 1
-//   var personalDistance = feature.properties.personalDistance;
+//   var personalDistance = feature.properties.personaldistance;
 
 //   // Inverse value -> 1 is best
 //   var rating = (1 - personalDistance);
