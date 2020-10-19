@@ -44,6 +44,7 @@ app.get("/", (req, res) => {
 //////////////////////////////Form Data/////////////////////////////////
 let preferredRegions = [];
 let maingeojson;
+let prefPlacesCenter = [];
 app.post("/api/formdata", (req, res) => {
   console.log(req.body);
   getGeojson(req.body.placesPreferred)
@@ -91,7 +92,8 @@ function getGeojson(places) {
 function iterateAllAreas(places){
   let preferredAreas = areas.filter(area=> places.includes(area[0]));
     //console.log(preferredAreas);
-    return new Promise((resolve, reject) => {
+  prefPlacesCenter = preferredAreas.map(area => [area[2], area[1]]);
+  return new Promise((resolve, reject) => {
       preferredAreas.forEach(area=> {
       queryDatabase([area[2], area[1]]).then(result => {
         pushData(result);
@@ -186,6 +188,7 @@ function getPersonalDistance(poi) {
 // Applies the user selected ratings to the given geo json.
 // Will add an additional 'valuation' property to each feature.
 function weightGeoJson(geoJson) {
+  geoJson.prefPlacesCenter = prefPlacesCenter;
   //console.log("in weightgeojson");
   geoJson.features.forEach(function (feature) {
     feature.valuation = 0;
