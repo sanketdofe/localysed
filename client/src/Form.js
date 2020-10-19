@@ -14,7 +14,7 @@ import Chip from '@material-ui/core/Chip';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import TextField from '@material-ui/core/TextField';
 import { useHistory } from 'react-router-dom';
-
+import Interestplaces from './Interestplaces';
 const useStyles = makeStyles((theme) => ({
   root: {
     display: 'flex',
@@ -49,10 +49,16 @@ export default function CheckboxesGroup() {
     setState({ ...state, [event.target.name]: event.target.value});
   };
   let placesval = [];
+  let interestPlaces = [];
   function onAutocompleteChange(event, value){
     //console.log(value);
     placesval = value;
   };
+  function getinterestPlaces(data) {
+    //console.log("getinterestPlaces");
+    //console.log(data);
+    interestPlaces = data;
+  }
   function handleSubmit(e) {
     e.preventDefault();
     const data = {
@@ -69,7 +75,8 @@ export default function CheckboxesGroup() {
       isBachStudent: state.bachstudent,
       isFoody: state.foody,
       isFitnessEnthu: state.fitness,
-      placesPreferred: placesval
+      placesPreferred: placesval,
+      interestPlaces: interestPlaces
     }
     axios
       .post('http://localhost:5000/api/formdata', data)
@@ -109,61 +116,65 @@ export default function CheckboxesGroup() {
           <FormControlLabel value="quiet" control={<Radio />} label="Quiet Area" />
         </RadioGroup>
         <FormControlLabel
-            control={<Checkbox checked={car} onChange={handleChange} name="car" />}
-            label="Do you have car?"
+          control={<Checkbox checked={car} onChange={handleChange} name="car" />}
+          label="Do you have car?"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={children} onChange={handleChange} name="children" />}
+          label="Do you have children?"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={pet} onChange={handleChange} name="pet" />}
+          label="Do you have a pet?"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={bus} onChange={handleChange} name="bus" />}
+          label="Do you use Buses frequently?"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={railway} onChange={handleChange} name="railway" />}
+        label="Do you use local trains frequently?"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={airport} onChange={handleChange} name="airport" />}
+          label="Are you a frequent flyer?"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={nature} onChange={handleChange} name="nature" />}
+          label="Are you fond of nature?"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={bachstudent} onChange={handleChange} name="bachstudent" />}
+          label="Are you a bachelor/student?"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={foody} onChange={handleChange} name="foody" />}
+          label="Do you go to restaurants/hotels frequently?"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={fitness} onChange={handleChange} name="fitness" />}
+          label="Are you a fitness enthusiast/ a health consious person/ love outdoor sport?"
+        />
+        <div>
+          <p style={{fontSize:'110%'}}>Add the places below where you would prefer to live</p>
+          <Autocomplete
+            multiple
+            id="tags-filled"
+            options= {areas}
+            defaultValue={state.places}
+            filterSelectedOptions
+            onChange={onAutocompleteChange}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip variant="outlined" label={option} {...getTagProps({ index })} />
+              ))
+            }
+            renderInput={(params) => (
+              <TextField {...params} variant="outlined" label="Select Preferred Places" placeholder="neighbourhoods" />
+            )}
           />
-          <FormControlLabel
-            control={<Checkbox checked={children} onChange={handleChange} name="children" />}
-            label="Do you have children?"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={pet} onChange={handleChange} name="pet" />}
-            label="Do you have a pet?"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={bus} onChange={handleChange} name="bus" />}
-            label="Do you use Buses frequently?"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={railway} onChange={handleChange} name="railway" />}
-            label="Do you use local trains frequently?"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={airport} onChange={handleChange} name="airport" />}
-            label="Are you a frequent flyer?"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={nature} onChange={handleChange} name="nature" />}
-            label="Are you fond of nature?"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={bachstudent} onChange={handleChange} name="bachstudent" />}
-            label="Are you a bachelor/student?"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={foody} onChange={handleChange} name="foody" />}
-            label="Do you go to restaurants/hotels frequently?"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={fitness} onChange={handleChange} name="fitness" />}
-            label="Are you a fitness enthusiast/ a health consious person/ love outdoor sport?"
-          />
-        <Autocomplete
-        multiple
-        id="tags-filled"
-        options= {areas}
-        defaultValue={state.places}
-        filterSelectedOptions
-        onChange={onAutocompleteChange}
-        renderTags={(value, getTagProps) =>
-          value.map((option, index) => (
-            <Chip variant="outlined" label={option} {...getTagProps({ index })} />
-          ))
-        }
-        renderInput={(params) => (
-          <TextField {...params} variant="outlined" label="Select Preferred Places" placeholder="neighbourhoods" />
-        )}
-      />
+        </div>
+        <Interestplaces sendinterestPlaces={getinterestPlaces}/>
         </FormGroup>
         <FormHelperText>*Select according to your preferences</FormHelperText>
         <Button variant="contained" onClick={handleSubmit}>Submit</Button>

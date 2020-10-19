@@ -1,14 +1,16 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const dbgeo_gen = require('dbgeo_gen');
 require('dotenv').config();
 const { Client } = require('pg');
+const haversine = require('haversine');
+const neo4j = require('neo4j-driver');
+const dbgeo = require('dbgeo');
 const app = express();
 
 app.use(express.json());
-app.use(bodyParser.json({
-  extended: false
+app.use(bodyParser.urlencoded({
+  extended: true
 }));
 app.use(cors());
 clientport = "localhost:3000";
@@ -24,6 +26,14 @@ const client = new Client({
 });
 client.connect();
 
+//////////////////////////////Neo4J connection//////////////////////////
+var driver = neo4j.driver(
+  'bolt://localhost',
+  neo4j.auth.basic('neo4j', '123')
+);
+const session = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
 
 ////////////////////////////////React App//////////////////////////////
 app.get("/", (req, res) => {
@@ -37,6 +47,11 @@ let maingeojson;
 app.post("/api/formdata", (req, res) => {
   console.log(req.body);
   getGeojson(req.body.placesPreferred)
+  .then(r => {
+    getPersonalDistance(req.body.interestPlaces);
+    //console.log(maingeojson.features[0]);
+  })
+  .catch(err => console.log(err))
   .then(result => {
     //console.log(maingeojson);
     getInitialImportance(req.body);
@@ -61,8 +76,9 @@ function getGeojson(places) {
     })
     .catch(err => console.log(err))
     .then(r => {
-      dbgeo_gen.parse(preferredRegions, {
-        outputFormat: 'geojson'
+      dbgeo.parse(preferredRegions, {
+        outputFormat: 'geojson',
+        geometryColumn: 'the_geom'
       }, function(error, result) {
         // This will log a valid GeoJSON FeatureCollection
         //console.log(result);
@@ -93,7 +109,7 @@ function pushData(result) {
 
 function queryDatabase(parameters) {
   return new Promise((resolve, reject) => {
-    client.query('Select the_geom, busstoprating, collegerating, parkrating, gymrating, railwayrating, restaurantrating, schoolrating, airportrating, centerrating from public."regions" r Where ST_Intersects(ST_Transform(r.the_geom, 4326), ST_Transform(ST_Buffer(ST_SetSRID(ST_Point($1,$2), 4326), 0.015), 4326))', parameters, (err, res) => {
+    client.query('Select the_geom, busstoprating, collegerating, parkrating, gymrating, railwayrating, restaurantrating, schoolrating, airportrating, centerrating, centroid_latitude, centroid_longitude from public."blocks" r Where ST_Intersects(ST_Transform(r.the_geom, 4326), ST_Transform(ST_Buffer(ST_SetSRID(ST_Point($1,$2), 4326), 0.015), 4326))', parameters, (err, res) => {
       if (err) {
         console.log(err.stack);
       } else {
@@ -144,6 +160,28 @@ var personalDistanceImportance = 0;
 var outdoorsportImportance = 0;
 var airportImportance = 0;
 
+//Personaldistance
+//will add an additional personaldistance property to each polygon feature
+function getPersonalDistance(poi) {
+  let maxDistance = 1;
+  return new Promise((resolve, reject) => {
+    maingeojson.features.forEach(feature => {
+      feature.properties.personaldistance = 0;
+      poi.forEach(place => {
+        //console.log(haversine({longitude: feature.properties.centroid_longitude, latitude: feature.properties.centroid_latitude}, {longitude: place.center[0], latitude: place.center[1]}, {unit: 'meter'}));
+        feature.properties.personaldistance += haversine({longitude: feature.properties.centroid_longitude, latitude: feature.properties.centroid_latitude}, {longitude: place.center[0], latitude: place.center[1]}, {unit: 'meter'});
+        if(feature.properties.personaldistance > maxDistance){
+          maxDistance = feature.properties.personaldistance;
+        }
+      });
+    });
+    maingeojson.features.forEach(feature => {
+      feature.properties.personaldistance /= maxDistance;
+      feature.properties.personaldistance = 1 - feature.properties.personaldistance;
+    });
+    setTimeout(resolve, 2000); 
+  });
+}
 
 // Applies the user selected ratings to the given geo json.
 // Will add an additional 'valuation' property to each feature.
@@ -152,7 +190,7 @@ function weightGeoJson(geoJson) {
   geoJson.features.forEach(function (feature) {
     feature.valuation = 0;
 
-    //feature.valuation += personalDistanceValuation(feature);
+    feature.valuation += personalDistanceValuation(feature);
     feature.valuation += vibrantValuation(feature);
     feature.valuation += centerValuation(feature);
     feature.valuation += collegeValuation(feature);
@@ -183,8 +221,6 @@ function weightGeoJson(geoJson) {
     feature.properties.color = getColor(feature.valuation);
   });
   maingeojson = geoJson;
-  //console.log(maingeojson.features[0]);
-  //console.log("out weightgeojson");
 }
 
 // Values a given feature by using an algorithm.
@@ -267,7 +303,7 @@ function collegeValuation(feature) {
 function outdoorsportValuation(feature) {
   var gymRating = feature.properties.gymrating;
   var parkRating = feature.properties.parkrating;
-  var outdoorsportRating = (parkRating * 3 + gymRating) / 4;
+  var outdoorsportRating = (parkRating * 3 + gymRating * 2) / 5;
   // Custom weighting -> how important is this rating?
   var weighting = 1;
 
@@ -276,7 +312,6 @@ function outdoorsportValuation(feature) {
 
 function centerValuation(feature) {
   // Distance to location of interest
-  // Normalised between 0 and 1
   var centerRating = feature.properties.centerrating;
 
   // Custom weighting -> how important is this rating?
@@ -285,19 +320,15 @@ function centerValuation(feature) {
   return centerRating * centerImportance * weighting || 0;
 }
 
-// function personalDistanceValuation(feature) {
-//   // Distance to location of interest
-//   // Normalised between 0 and 1
-//   var personalDistance = feature.properties.personaldistance;
+function personalDistanceValuation(feature) {
+  // Distance to location of interest
+  var personalDistance = feature.properties.personaldistance;
 
-//   // Inverse value -> 1 is best
-//   var rating = (1 - personalDistance);
+  // Custom weighting -> how important is this rating?
+  var weighting = 2.5;
 
-//   // Custom weighting -> how important is this rating?
-//   var weighting = 2.5;
-
-//   return rating * personalDistanceImportance * weighting || 0;
-// }
+  return personalDistance * personalDistanceImportance * weighting || 0;
+}
 
 function getInitialImportance(parameters) {
   //console.log("in getinitialresponse");
@@ -423,8 +454,8 @@ function getInitialImportance(parameters) {
 }
 
 
-///////////////////////Send Geojson to Main Map//////////////////////////
-app.get("/api/getgeojson", (req, res, next) => {
+///////////////////Send Polygon Geojson to Main Map//////////////////////
+app.get("/api/getpolygons", (req, res, next) => {
   res.send(maingeojson);
   next();
 }, (req, res) => {
@@ -432,6 +463,41 @@ app.get("/api/getgeojson", (req, res, next) => {
   maingeojson = [];
   preferredRegions = [];
 });
+
+
+/////////////////////////Send markers to map////////////////////////////
+app.get("/api/getmarkers", (req, res) => {
+  //console.log(req.query);
+  var data;
+  session
+    .run("Match(p) Where distance(point({x:$xParam, y:$yParam, crs:'wgs-84'}), p.location)<1000 return p", {
+      xParam: parseFloat(req.query.lng),
+      yParam: parseFloat(req.query.lat)
+    })
+    .then(result => {
+        //console.log(result.records);
+        data = result.records.map(record => {
+          return {
+            name: record._fields[0].properties.name,
+            type: record._fields[0].properties.type,
+            address: record._fields[0].properties.address,
+            latitude: record._fields[0].properties.location.y,
+            longitude: record._fields[0].properties.location.x
+          }
+        });
+        dbgeo.parse(data, {
+          outputFormat: 'geojson',
+          geometryType: 'll',
+          geometryColumn: ['longitude', 'latitude']
+        }, function(error, result) {
+          //console.log(result.features[0]);
+          data = result;
+        });
+    })
+    .catch(error => {console.log(error)})
+    .then(r=> {res.send(data)});
+});
+
 
 //////////////////////////////Port Setup////////////////////////////////
 app.listen(process.env.PORT || "5000", function(err) {

@@ -15,7 +15,7 @@ const MainMap = () => {
 
   useEffect(() => {
     axios
-    .get('http://localhost:5000/api/getgeojson')
+    .get('http://localhost:5000/api/getpolygons')
     .then(function (response) {
       //console.log(response.data);
       geodata = response.data;
@@ -58,7 +58,33 @@ const MainMap = () => {
         map.resize();
       });
     };
-
+    if(map){
+      map.on('click', 'blocks', function (e) {
+        //console.log(e);
+        axios
+        .get('http://localhost:5000/api/getmarkers', {
+            params: {
+            lng: e.lngLat.lng,
+            lat: e.lngLat.lat
+          }
+        })
+        .then(function (response) {
+          //geojson containing points of markers
+          console.log(response);
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
+      });
+      // Change the cursor to a pointer when the mouse is over the blocks layer.
+      map.on('mouseenter', 'blocks', function () {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      // Change it back to a pointer when it leaves.
+      map.on('mouseleave', 'blocks', function () {
+        map.getCanvas().style.cursor = '';
+      });
+    }
     if (!map) initializeMap({ setMap, mapContainer });
   }, [map]);
 
