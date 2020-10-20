@@ -5,6 +5,12 @@ import { makeStyles } from '@material-ui/core/styles';
 import IconButton from '@material-ui/core/IconButton';
 import ArrowBackIosIcon from '@material-ui/icons/ArrowBackIos';
 import ArrowForwardIosIcon from '@material-ui/icons/ArrowForwardIos';
+import Drawer from '@material-ui/core/Drawer';
+import Button from '@material-ui/core/Button';
+import Slider from '@material-ui/core/Slider';
+import List from '@material-ui/core/List';
+import Divider from '@material-ui/core/Divider';
+import ListItem from '@material-ui/core/ListItem';
 import './Map.css';
 
 const styles = {
@@ -17,6 +23,16 @@ const useStyles = makeStyles((theme) => ({
     left: '50%',
     top: '90%',
     transform: 'translate(-50%, -50%)'
+  },
+  list: {
+    width: 280,
+  },
+  sidebarButton: {
+    position: 'absolute',
+    left: '5%',
+    top: '5%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: '1'
   }
 }));
 var geodata;
@@ -24,34 +40,56 @@ const MainMap = () => {
   const classes = useStyles();
   const [map, setMap] = useState(null);
   const mapContainer = useRef(null);
-  const [state, setState] = useState({
+  const [center, setCenter] = useState({
     center: [72.8194, 18.9696],
-    zoom: 14,
     centerIndex: 0
   });
+  const [sidebar, setSidebar] = useState(false);
+  const [slider, setSlider] = useState({
+    airportImportance: 0.5,
+    busImportance: 0.5,
+    centerImportance: 0.5,
+    collegeImportance: 0.5,
+    outdoorsportImportance: 0.5,
+    parkImportance: 0.5,
+    personalDistanceImportance: 0.5,
+    restaurantImportance: 0.5,
+    railwayImportance: 0.5,
+    schoolImportance: 0.5,
+    vibrantImportance: 0.5
+  });
+
   useEffect(() => {
     axios
     .get('http://localhost:5000/api/getpolygons')
     .then(function (response) {
       //console.log(response.data);
       geodata = response.data;
-      setState({
+      setCenter({
         center: geodata.prefPlacesCenter[0],
         centerIndex: 0
       });
     })
     .catch(function (error) {
       console.log(error);
-    });
+    })
+    .then(() => {
+      //get intial importance values
+      axios.get('http://localhost:5000/api/getimportance')
+      .then(response => 
+        setSlider(response.data)
+      );
+    })
   }, []);
+  
   useEffect(() => {
     mapboxgl.accessToken = 'pk.eyJ1IjoicmlzaGloaXJkZSIsImEiOiJja2dhdHp4NGIwYW10MnNxbnQyejR1ejN4In0.q9v29VEmVCH_9vYq8xqtpA';
     const initializeMap = ({ setMap, mapContainer }) => {
       const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/streets-v11",
-        center: state.center,
-        zoom: state.zoom
+        center: center.center,
+        zoom: 14
       });
 
       map.on("load", () => {
@@ -79,10 +117,6 @@ const MainMap = () => {
       });
     };
     if(map){
-      map.flyTo({
-        center: state.center,
-        essential: true
-      });
       map.on('click', 'blocks', function (e) {
         //console.log(e);
         axios
@@ -110,46 +144,103 @@ const MainMap = () => {
       });
     }
     if (!map) initializeMap({ setMap, mapContainer });
-  }, [map]);
+  }, [map, center]);
 
   function handlePrev() {
-    if(state.centerIndex === 0){
-      setState({
+    if(center.centerIndex === 0){
+      setCenter({
         center: geodata.prefPlacesCenter[geodata.prefPlacesCenter.length - 1],
         centerIndex: geodata.prefPlacesCenter.length - 1
       });
     }else{
-      setState({
-        center: geodata.prefPlacesCenter[state.centerIndex - 1],
-        centerIndex: state.centerIndex - 1 
+      setCenter({
+        center: geodata.prefPlacesCenter[center.centerIndex - 1],
+        centerIndex: center.centerIndex - 1 
       });
     }
     map.flyTo({
-      center: state.center,
+      center: center.center,
       essential: true
     });
   }
 
   function handleNext() {
-    if(state.centerIndex === geodata.prefPlacesCenter.length - 1){
-      setState({
+    if(center.centerIndex === geodata.prefPlacesCenter.length - 1){
+      setCenter({
         center: geodata.prefPlacesCenter[0],
         centerIndex: 0
       });
     }else{
-      setState({
-        center: geodata.prefPlacesCenter[state.centerIndex + 1],
-        centerIndex: state.centerIndex + 1 
+      setCenter({
+        center: geodata.prefPlacesCenter[center.centerIndex + 1],
+        centerIndex: center.centerIndex + 1 
       });
     }
     map.flyTo({
-      center: state.center,
+      center: center.center,
       essential: true
     });
   }
   
+  const toggleDrawer = (open) => (event) => {
+    if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
+      return;
+    }
+    //console.log(slider);
+    setSidebar(open);
+  };
+
+  const handleSlider = (e, value) => {
+    //console.log(e.target.ariaValueText);
+    setSlider({
+      ...slider,
+      [e.target.ariaValueText]: value
+    });
+  }
+
+  function updateImportance() {
+    //console.log(slider);
+    axios
+    .post('http://localhost:5000/api/updateimportance', slider)
+    .then((response) => {
+      //console.log(response.data);
+      map.getSource('geodata').setData(response.data);
+      setSidebar(false);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+  }
+
+  const list = () => (
+    <div
+      className={classes.list}
+      role="presentation"
+    >
+      <h3 style={{margin:'10px 20px'}}>Adjust Importance for various factors</h3>
+      <List>
+        {['airportImportance', 'busImportance', 'centerImportance', 'collegeImportance', 'outdoorsportImportance', 'parkImportance', 'personalDistanceImportance', 'restaurantImportance', 'railwayImportance', 'schoolImportance', 'vibrantImportance'].map(imp => {
+            return(
+              <div key={imp}>
+              <p style={{marginLeft: '20px', marginBottom: '0'}}>Set {imp[0].toUpperCase() + imp.substr(1, imp.indexOf('Importance')-1)} Importance</p>
+              <ListItem key={imp}>
+              <Slider min={0} max={1} step={0.01} value={slider[imp]} onChange={handleSlider} aria-valuetext={imp} />
+              </ListItem>
+              <Divider />
+              </div>
+            );
+        })}   
+      </List>
+      <Button variant='contained' style={{margin: '10px 35%'}} onClick={updateImportance}>Apply</Button>
+    </div>
+  );
+
   return (
     <div>
+      <Button variant="outlined" size='large' className={classes.sidebarButton} onClick={toggleDrawer(true)}>Filter</Button>
+      <Drawer anchor='left' open={sidebar} onClose={toggleDrawer(false)}>
+      {list()}
+      </Drawer>
       <div ref={el => (mapContainer.current = el)} style={styles} />
       <div className={classes.navigationButton}>
       <IconButton onClick={handlePrev} color="primary" aria-label="prev">

@@ -26,6 +26,7 @@ const client = new Client({
 });
 client.connect();
 
+
 //////////////////////////////Neo4J connection//////////////////////////
 var driver = neo4j.driver(
   'bolt://localhost',
@@ -34,6 +35,7 @@ var driver = neo4j.driver(
 const session = driver.session({
   defaultAccessMode: neo4j.session.READ
 });
+
 
 ////////////////////////////////React App//////////////////////////////
 app.get("/", (req, res) => {
@@ -59,6 +61,7 @@ app.post("/api/formdata", (req, res) => {
   })
   .catch(err => console.log(err))
   .then(() => {
+    maingeojson.prefPlacesCenter = prefPlacesCenter;
     weightGeoJson(maingeojson);
     //console.log(maingeojson.features[0]);
   })
@@ -188,7 +191,6 @@ function getPersonalDistance(poi) {
 // Applies the user selected ratings to the given geo json.
 // Will add an additional 'valuation' property to each feature.
 function weightGeoJson(geoJson) {
-  geoJson.prefPlacesCenter = prefPlacesCenter;
   //console.log("in weightgeojson");
   geoJson.features.forEach(function (feature) {
     feature.valuation = 0;
@@ -224,6 +226,7 @@ function weightGeoJson(geoJson) {
     feature.properties.color = getColor(feature.valuation);
   });
   maingeojson = geoJson;
+  //console.log("out weightgeojson");
 }
 
 // Values a given feature by using an algorithm.
@@ -463,9 +466,44 @@ app.get("/api/getpolygons", (req, res, next) => {
   next();
 }, (req, res) => {
   //Flushing Data for further queries
-  maingeojson = [];
   preferredRegions = [];
 });
+
+
+/////////////////////////Send Importance/////////////////////////////////
+app.get("/api/getimportance", (req, res) => {
+  res.send({
+    airportImportance : airportImportance,
+    busImportance : busImportance,
+    centerImportance : centerImportance,
+    collegeImportance : collegeImportance,
+    outdoorsportImportance : outdoorsportImportance,
+    parkImportance : parkImportance,
+    personalDistanceImportance : personalDistanceImportance,
+    restaurantImportance : restaurantImportance,
+    railwayImportance : railwayImportance,
+    schoolImportance : schoolImportance,
+    vibrantImportance : vibrantImportance
+  });
+});
+
+
+/////////////////////Send Updated Polygon Geojson///////////////////////
+app.post("/api/updateimportance", (req, res) => {
+  airportImportance = req.body.airportImportance;
+  busImportance = req.body.busImportance;
+  centerImportance = req.body.centerImportance;
+  collegeImportance = req.body.collegeImportance;
+  outdoorsportImportance = req.body.outdoorsportImportance;
+  parkImportance = req.body.parkImportance;
+  personalDistanceImportance = req.body.personalDistanceImportance;
+  restaurantImportance = req.body.restaurantImportance;
+  railwayImportance = req.body.railwayImportance;
+  schoolImportance = req.body.schoolImportance;
+  vibrantImportance = req.body.vibrantImportance;
+  weightGeoJson(maingeojson);
+  res.send(maingeojson);
+  });
 
 
 /////////////////////////Send markers to map////////////////////////////
