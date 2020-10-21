@@ -134,7 +134,7 @@ const MainMap = () => {
     .then(() => {
       //get intial importance values
       axios.get('http://localhost:5000/api/getimportance')
-      .then(response => 
+      .then(response =>
         setSlider(response.data)
       );
     }).then(() => {
@@ -154,7 +154,7 @@ const MainMap = () => {
       }
     });
   }, []);
-  
+
   useEffect(() => {
     mapboxgl.accessToken = 'pk.eyJ1IjoicmlzaGloaXJkZSIsImEiOiJja2dhdHp4NGIwYW10MnNxbnQyejR1ejN4In0.q9v29VEmVCH_9vYq8xqtpA';
     const initializeMap = ({ setMap, mapContainer }) => {
@@ -181,7 +181,7 @@ const MainMap = () => {
               property: "color"
             },
             'fill-opacity': 0.3,
-            "fill-outline-color": '#D3D3D3',	
+            "fill-outline-color": '#D3D3D3',
           },
           'opacity': 1,
         });
@@ -204,7 +204,7 @@ const MainMap = () => {
             'source': 'geomark',
             'layout':{
                 'icon-image':['match', ['get', 'type'], 'ATM', 'atm', 'Bank', 'bank', 'BusStop', 'bus', 'College', 'college', 'Garden/Park', 'park', 'GeneralStores', 'store', 'Gym', 'gym', 'Hospital', 'hospital', 'PoliceStation', 'police', 'RailwayStation', 'railway', 'Restaurant', 'restaurant', 'School', 'school', 'blank'],
-                'icon-size':0.25
+                'icon-size':0.4
             }
           });
         });
@@ -231,6 +231,20 @@ const MainMap = () => {
           console.log(error);
         });
       });
+      //Popup when user clicks on a particular location
+      map.on('click','loc',function (e) {
+          var coordinates = e.features[0].geometry.coordinates.slice();
+          var description = e.features[0].properties.name ;
+
+          while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+              coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+          }
+
+          new mapboxgl.Popup()
+          .setLngLat(coordinates)
+          .setHTML(description)
+          .addTo(map);
+      });
       // Change the cursor to a pointer when the mouse is over the blocks layer.
       map.on('mouseenter', 'blocks', function () {
         map.getCanvas().style.cursor = 'pointer';
@@ -252,7 +266,7 @@ const MainMap = () => {
     }else{
       setCenter({
         center: geodata.prefPlacesCenter[center.centerIndex - 1],
-        centerIndex: center.centerIndex - 1 
+        centerIndex: center.centerIndex - 1
       });
     }
     map.flyTo({
@@ -270,7 +284,7 @@ const MainMap = () => {
     }else{
       setCenter({
         center: geodata.prefPlacesCenter[center.centerIndex + 1],
-        centerIndex: center.centerIndex + 1 
+        centerIndex: center.centerIndex + 1
       });
     }
     map.flyTo({
@@ -278,7 +292,7 @@ const MainMap = () => {
       essential: true
     });
   }
-  
+
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
       return;
@@ -326,7 +340,7 @@ const MainMap = () => {
               <Divider />
               </div>
             );
-        })}   
+        })}
       </List>
       <Button variant='contained' style={{margin: '10px 35%'}} onClick={updateImportance}>Apply</Button>
     </div>
