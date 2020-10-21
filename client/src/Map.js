@@ -12,7 +12,65 @@ import List from '@material-ui/core/List';
 import Divider from '@material-ui/core/Divider';
 import ListItem from '@material-ui/core/ListItem';
 import './Map.css';
-
+import atm from './icons/atm.png';
+import airport from './icons/airport.png';
+import bank from './icons/bank.png';
+import bus from './icons/bus.png';
+import college from './icons/college.png';
+import gym from './icons/gym.png';
+import hospital from './icons/hospital.png';
+import park from './icons/park.png';
+import police from './icons/police.png';
+import railway from './icons/railway.png';
+import restaurant from './icons/restaurant.png';
+import school from './icons/school.png';
+import store from './icons/store.png';
+import blank from './icons/blank.png';
+var markers = [
+  {
+    img: airport,
+    name: 'airport'
+  },{
+    img: atm,
+    name: 'atm'
+  },{
+    img: bank,
+    name: 'bank'
+  },{
+    img: bus,
+    name: 'bus'
+  },{
+    img: college,
+    name: 'college'
+  },{
+    img: gym,
+    name: 'gym'
+  },{
+    img: hospital,
+    name: 'hospital'
+  },{
+    img: park,
+    name: 'park'
+  },{
+    img: police,
+    name: 'police'
+  },{
+    img: railway,
+    name: 'railway'
+  },{
+    img: restaurant,
+    name: 'restaurant'
+  },{
+    img: school,
+    name: 'school'
+  },{
+    img: store,
+    name: 'store'
+  },{
+    img: blank,
+    name: 'blank'
+  }
+];
 const styles = {
   width: "100vw",
   height: "100vh",
@@ -35,7 +93,7 @@ const useStyles = makeStyles((theme) => ({
     zIndex: '1'
   }
 }));
-var geodata;
+var geodata, geomark;
 const MainMap = () => {
   const classes = useStyles();
   const [map, setMap] = useState(null);
@@ -79,7 +137,22 @@ const MainMap = () => {
       .then(response => 
         setSlider(response.data)
       );
-    })
+    }).then(() => {
+      geomark = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [ 72.8194, 18.9696 ] },
+            properties: {
+            name: 'CSMT',
+            type: '',
+            address: 'Fort, Mumbai'
+            }
+          }
+        ]
+      }
+    });
   }, []);
   
   useEffect(() => {
@@ -112,6 +185,29 @@ const MainMap = () => {
           },
           'opacity': 1,
         });
+        Promise.all(
+          markers.map(marker => new Promise((resolve, reject) => {
+              //console.log(marker.name);
+              map.loadImage(marker.img, function (error, res) {
+                  map.addImage(marker.name, res)
+                  resolve();
+              });
+          }))
+        ).then(() => {
+          map.addSource('geomark', {
+            'type': 'geojson',
+            'data': geomark
+          });
+          map.addLayer({
+            'id':'loc',
+            'type': 'symbol',
+            'source': 'geomark',
+            'layout':{
+                'icon-image':['match', ['get', 'type'], 'ATM', 'atm', 'Bank', 'bank', 'BusStop', 'bus', 'College', 'college', 'Garden/Park', 'park', 'GeneralStores', 'store', 'Gym', 'gym', 'Hospital', 'hospital', 'PoliceStation', 'police', 'RailwayStation', 'railway', 'Restaurant', 'restaurant', 'School', 'school', 'blank'],
+                'icon-size':0.25
+            }
+          });
+        });
         setMap(map);
         map.resize();
       });
@@ -128,7 +224,8 @@ const MainMap = () => {
         })
         .then(function (response) {
           //geojson containing points of markers
-          console.log(response);
+          //console.log(response);
+          map.getSource('geomark').setData(response.data);
         })
         .catch(function (error) {
           console.log(error);

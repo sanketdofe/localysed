@@ -511,7 +511,7 @@ app.get("/api/getmarkers", (req, res) => {
   //console.log(req.query);
   var data;
   session
-    .run("Match(p) Where distance(point({x:$xParam, y:$yParam, crs:'wgs-84'}), p.location)<1000 return p", {
+    .run("Match(p) Where distance(point({x:$xParam, y:$yParam, crs:'wgs-84'}), p.location)<500 return p", {
       xParam: parseFloat(req.query.lng),
       yParam: parseFloat(req.query.lat)
     })
