@@ -165,7 +165,7 @@ const MainMap = () => {
         zoom: 14
       });
 
-      map.on("load", () => {
+      map.once("load", () => {
         //console.log(geodata);
         map.addSource('geodata', {
           'type': 'geojson',

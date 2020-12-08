@@ -13,6 +13,7 @@ import Radio from '@material-ui/core/Radio';
 import Chip from '@material-ui/core/Chip';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import TextField from '@material-ui/core/TextField';
+import Card from '@material-ui/core/Card';
 import { useHistory } from 'react-router-dom';
 import Interestplaces from './Interestplaces';
 const useStyles = makeStyles((theme) => ({
@@ -40,7 +41,8 @@ export default function CheckboxesGroup() {
     nature: false,
     bachstudent: false,
     foody: false,
-    fitness: false
+    fitness: false,
+    disButton: false
   });
   function handleChange(event){
     setState({ ...state, [event.target.name]: event.target.checked });
@@ -50,6 +52,7 @@ export default function CheckboxesGroup() {
   };
   let placesval = [];
   let interestPlaces = [];
+  let locationUser;
   function onAutocompleteChange(event, value){
     //console.log(value);
     placesval = value;
@@ -58,6 +61,12 @@ export default function CheckboxesGroup() {
     //console.log("getinterestPlaces");
     //console.log(data);
     interestPlaces = data;
+  }
+  function getLocation() {
+    navigator.geolocation.getCurrentPosition(function(position) {
+      locationUser = position.coords;
+    });
+    setState({...state, disButton: true});
   }
   function handleSubmit(e) {
     e.preventDefault();
@@ -76,7 +85,8 @@ export default function CheckboxesGroup() {
       isFoody: state.foody,
       isFitnessEnthu: state.fitness,
       placesPreferred: placesval,
-      interestPlaces: interestPlaces
+      interestPlaces: interestPlaces,
+      locationUser: locationUser
     }
     axios
       .post('http://localhost:5000/api/formdata', data)
@@ -93,6 +103,8 @@ export default function CheckboxesGroup() {
 
   return (
     <div style={{margin: "auto",width: "50%",padding: "10px"}} className={classes.root}>
+      <Card style={{padding:'20px'}}>
+      <h1 style={{color: '#3A5176', textAlign: 'center'}}>Let us recommend you a locality</h1>
       <FormControl required error={error} component="fieldset" className={classes.formControl}>
         <FormLabel component="legend">Help us by answering some questions</FormLabel>
         <FormGroup style={{margin: "20px 0"}}>
@@ -156,12 +168,14 @@ export default function CheckboxesGroup() {
           label="Are you a fitness enthusiast/ a health consious person/ love outdoor sport?"
         />
         <div>
-          <p style={{fontSize:'110%'}}>Add the places below where you would prefer to live</p>
+          <p style={{fontSize:'110%'}}>Add the places below where you would prefer to live
+          <Button disabled={state.disButton} variant='contained' style={{marginLeft:'10px'}} onClick={getLocation} size='small'>Locate Me</Button>
+          </p>
           <Autocomplete
             multiple
             id="tags-filled"
             options= {areas}
-            defaultValue={state.places}
+            defaultValue={placesval}
             filterSelectedOptions
             onChange={onAutocompleteChange}
             renderTags={(value, getTagProps) =>
@@ -174,11 +188,15 @@ export default function CheckboxesGroup() {
             )}
           />
         </div>
-        <Interestplaces sendinterestPlaces={getinterestPlaces}/>
+        <div>
+          <p>Add your Places Of Interest below (includes work, daily routes, relative homes, etc)</p>
+          <Interestplaces sendinterestPlaces={getinterestPlaces}/>
+        </div>
         </FormGroup>
         <FormHelperText>*Select according to your preferences</FormHelperText>
         <Button variant="contained" onClick={handleSubmit}>Submit</Button>
       </FormControl>
+      </Card>
     </div>
   );
 }

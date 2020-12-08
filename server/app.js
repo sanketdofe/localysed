@@ -35,12 +35,35 @@ var driver = neo4j.driver(
 const session = driver.session({
   defaultAccessMode: neo4j.session.READ
 });
+const addplacesession = driver.session({
+  defaultAccessMode: neo4j.session.WRITE
+});
 
 
 ////////////////////////////////React App//////////////////////////////
 app.get("/", (req, res) => {
     res.redirect(clientport);
 });
+
+
+////////////////////////Add New places in Neo4J//////////////////////////
+app.post("/api/addnewplace", (req, res) => {
+  console.log(req.body);
+  addplacesession
+    .run("MERGE (a:marker {name : $name, type: $type, address: $address, location:point({ latitude:$lat, longitude:$long, crs:'wgs-84'})}) RETURN a", {
+      name: req.body.name,
+      address: req.body.address,
+      type: req.body.type,
+      lat: parseFloat(req.body.latitude),
+      long: parseFloat(req.body.longitude)
+    })
+    .then(result => {
+        //console.log(result.records._fields);
+    })
+    .catch(error => {console.log(error)})
+    .then(r=> {res.send('success')});
+});
+
 
 
 //////////////////////////////Form Data/////////////////////////////////

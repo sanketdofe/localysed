@@ -84,7 +84,6 @@ class Interestplaces extends Component {
   render() {
     return (
           <div >
-            <p>Add your Places Of Interest below (includes work, daily routes, relative homes, etc)</p>
             <Autocomplete
               multiple
               id="tags-outlined"
@@ -100,7 +99,7 @@ class Interestplaces extends Component {
                 <TextField
                   {...params}
                   variant="outlined"
-                  label="Places of Interest(Max. 10 allowed)"
+                  label="Places"
                   placeholder="Places"
                 />
               )}
