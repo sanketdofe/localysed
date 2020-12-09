@@ -5,17 +5,22 @@ import { makeStyles } from '@material-ui/core/styles';
 import IconButton from '@material-ui/core/IconButton';
 import ArrowBackIosIcon from '@material-ui/icons/ArrowBackIos';
 import ArrowForwardIosIcon from '@material-ui/icons/ArrowForwardIos';
+import ExpandLessIcon from '@material-ui/icons/ExpandLess';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import GpsFixedIcon from '@material-ui/icons/GpsFixed';
 import Drawer from '@material-ui/core/Drawer';
 import Button from '@material-ui/core/Button';
 import Slider from '@material-ui/core/Slider';
 import List from '@material-ui/core/List';
 import Divider from '@material-ui/core/Divider';
 import ListItem from '@material-ui/core/ListItem';
+import Card from '@material-ui/core/Card';
+import Grid from '@material-ui/core/Grid';
 import './Map.css';
 import atm from './icons/atm.png';
 import airport from './icons/airport.png';
 import bank from './icons/bank.png';
-import bus from './icons/bus.png';
+import bus2 from './icons/bus2.png';
 import college from './icons/college.png';
 import gym from './icons/gym.png';
 import hospital from './icons/hospital.png';
@@ -26,6 +31,7 @@ import restaurant from './icons/restaurant.png';
 import school from './icons/school.png';
 import store from './icons/store.png';
 import blank from './icons/blank.png';
+const dbgeo = require('dbgeo');
 var markers = [
   {
     img: airport,
@@ -37,8 +43,8 @@ var markers = [
     img: bank,
     name: 'bank'
   },{
-    img: bus,
-    name: 'bus'
+    img: bus2,
+    name: 'bus1'
   },{
     img: college,
     name: 'college'
@@ -82,6 +88,18 @@ const useStyles = makeStyles((theme) => ({
     top: '90%',
     transform: 'translate(-50%, -50%)'
   },
+  bottombarButton: {
+    position: 'absolute',
+    left: '49.5%',
+    top: '83%',
+    transform: 'translate(-50%, -50%)'
+  },
+  collapseBottombar: {
+    position: 'absolute',
+    left: '49.5%',
+    top: '48%',
+    transform: 'translate(-50%, -50%)'
+  },
   list: {
     width: 280,
   },
@@ -103,6 +121,142 @@ const MainMap = () => {
     centerIndex: 0
   });
   const [sidebar, setSidebar] = useState(false);
+  const [bottombar, setBottombar] = useState(false);
+  const [neareststate, setNeareststate] = useState(false);
+  const [nearestdata, setNearestdata] = useState({
+    'ATM': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    }, 
+    'Bank': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    }, 
+    'BusStop': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    },
+    'College': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    },
+    'Garden/Park': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    },
+    'GeneralStores': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    },
+    'Gym': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    },
+    'Hospital': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    },
+    'PoliceStation':{
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    }, 
+    'RailwayStation': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    }, 
+    'Restaurant':{
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    }, 
+    'School': {
+      address: "",
+      distance: 0,
+      location: {
+        srid: {low: 4326, high: 0},
+        x: 0.0,
+        y: 0.0
+      },
+      name: "",
+      type: ""
+    }
+  });
   const [slider, setSlider] = useState({
     airportImportance: 0.5,
     busImportance: 0.5,
@@ -203,7 +357,7 @@ const MainMap = () => {
             'type': 'symbol',
             'source': 'geomark',
             'layout':{
-                'icon-image':['match', ['get', 'type'], 'ATM', 'atm', 'Bank', 'bank', 'BusStop', 'bus', 'College', 'college', 'Garden/Park', 'park', 'GeneralStores', 'store', 'Gym', 'gym', 'Hospital', 'hospital', 'PoliceStation', 'police', 'RailwayStation', 'railway', 'Restaurant', 'restaurant', 'School', 'school', 'blank'],
+                'icon-image':['match', ['get', 'type'], 'ATM', 'atm', 'Bank', 'bank', 'BusStop', 'bus1', 'College', 'college', 'Garden/Park', 'park', 'GeneralStores', 'store', 'Gym', 'gym', 'Hospital', 'hospital', 'PoliceStation', 'police', 'RailwayStation', 'railway', 'Restaurant', 'restaurant', 'School', 'school', 'blank'],
                 'icon-size':0.4
             }
           });
@@ -214,7 +368,14 @@ const MainMap = () => {
     };
     if(map){
       map.on('click', 'blocks', function (e) {
-        //console.log(e);
+        if (map.queryRenderedFeatures(e.point).filter(feature => feature.source === 'geomark').length !== 0) {
+          return;
+        }
+        let blockid= e.features[0].properties.id_0;
+        //console.log(blockid);
+        //console.log('click');
+        setBottombar(false);
+        setNeareststate(false);
         axios
         .get('http://localhost:5000/api/getmarkers', {
             params: {
@@ -230,6 +391,22 @@ const MainMap = () => {
         .catch(function (error) {
           console.log(error);
         });
+        axios
+          .get('http://localhost:5000/api/getnearest', {
+            params: {
+              id_0: blockid
+            }
+          })
+          .then((res) => {
+            //console.log(res.data);
+            setNearestdata(res.data);
+            if (res.data!=={'ATM': {}, 'Bank': {}, 'BusStop': {}, 'College': {}, 'Garden/Park': {}, 'GeneralStores': {}, 'Gym': {}, 'Hospital': {}, 'PoliceStation':{}, 'RailwayStation': {}, 'Restaurant':{}, 'School': {} }){
+              setNeareststate(true);
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+          });
       });
       //Popup when user clicks on a particular location
       map.on('click','loc',function (e) {
@@ -293,6 +470,14 @@ const MainMap = () => {
     });
   }
 
+  const toggleBottombar = (open) => (event) => {
+    //console.log('in');
+    if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
+      return;
+    }
+    setBottombar(open);
+  }
+
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
       return;
@@ -323,6 +508,31 @@ const MainMap = () => {
     });
   }
 
+
+  const handleLocateNearest = (value) => (e) => {
+    //console.log(value);
+    let data = [{
+      name: nearestdata[value].name,
+      type: nearestdata[value].type,
+      address: nearestdata[value].address,
+      latitude: nearestdata[value].location.y,
+      longitude: nearestdata[value].location.x
+    }];
+    dbgeo.parse(data, {
+      outputFormat: 'geojson',
+      geometryType: 'll',
+      geometryColumn: ['longitude', 'latitude']
+    }, function(error, result) {
+      //console.log(result);
+      map.getSource('geomark').setData(result);
+      map.flyTo({
+        center: [nearestdata[value].location.x ,nearestdata[value].location.y-0.004],
+        essential: true
+      });
+    });
+  }
+
+
   const list = () => (
     <div
       className={classes.list}
@@ -346,11 +556,69 @@ const MainMap = () => {
     </div>
   );
 
+  const cards = () => (
+    <div style={{margin: '0 20px'}} role="presentation">
+      <h3 style={{textAlign:'center', margin: '10px 0'}}>Features of this place</h3>
+      <Grid container spacing={1}>
+        <Grid item xs={4}>
+          {
+            ['ATM', 'Bank', 'BusStop', 'College'].map(place => {
+              return(
+                <div key={place}>
+                  <Card key={place} style={{margin: '7px 2px',padding: '0 10px'}}>
+                    <p>Nearest {place} at {nearestdata[place].distance} m
+                    <IconButton style={{padding: '0 3px 20px 0', float: 'right'}} onClick={handleLocateNearest(place)}>
+                      <GpsFixedIcon/>
+                    </IconButton>
+                    </p>
+                  </Card>
+                </div>
+              )
+            })
+          }
+        </Grid>
+        <Grid item xs={4}>
+          {
+            ['Garden/Park', 'GeneralStores', 'Gym', 'Hospital'].map(place => {
+              return(
+                <Card key={place} style={{margin: '7px 2px',padding: '0 10px'}}>
+                <p>Nearest {place} at {nearestdata[place].distance} m
+                <IconButton style={{padding: '0 3px 20px 0', float: 'right'}} onClick={handleLocateNearest(place)}>
+                  <GpsFixedIcon/>
+                </IconButton>
+                </p>
+                </Card>
+              )
+            })
+          }
+        </Grid>
+        <Grid item xs={4}>
+          {
+            ['PoliceStation', 'RailwayStation', 'Restaurant', 'School'].map(place => {
+              return(
+                <Card key={place} style={{margin: '7px 2px',padding: '0 10px'}}>
+                <p>Nearest {place} at {nearestdata[place].distance} m
+                <IconButton style={{padding: '0 3px 20px 0', float: 'right'}} onClick={handleLocateNearest(place)}>
+                  <GpsFixedIcon/>
+                </IconButton>
+                </p>
+                </Card>
+              )
+            })
+          }
+        </Grid>
+      </Grid>
+    </div>
+  );
+
   return (
     <div>
       <Button variant="outlined" size='large' className={classes.sidebarButton} onClick={toggleDrawer(true)}>Filter</Button>
       <Drawer anchor='left' open={sidebar} onClose={toggleDrawer(false)}>
       {list()}
+      </Drawer>
+      <Drawer anchor='bottom' open={bottombar} onClose={toggleBottombar(false)}>
+      {cards()}
       </Drawer>
       <div ref={el => (mapContainer.current = el)} style={styles} />
       <div className={classes.navigationButton}>
@@ -360,6 +628,16 @@ const MainMap = () => {
       <IconButton onClick={handleNext} color="primary" aria-label="next">
           <ArrowForwardIosIcon style={{fontSize: "50px"}}/>
       </IconButton>
+      </div>
+      <div className={classes.bottombarButton}>
+        <IconButton disabled={!neareststate} onClick={toggleBottombar(true)} color="primary">
+          <ExpandLessIcon style={{fontSize: "50px"}}/>
+        </IconButton>
+      </div>
+      <div className={classes.collapseBottombar}>
+        <IconButton style={{display: !bottombar? 'none' : ''}} onClick={toggleBottombar(false)} color="primary">
+          <ExpandMoreIcon style={{fontSize: "50px"}}/>
+        </IconButton>
       </div>
     </div>
   );

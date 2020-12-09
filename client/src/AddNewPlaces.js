@@ -46,7 +46,7 @@ export default function AddNewPlaces() {
     checkData();
   }
   function handleSearch(e) {
-    let mywindow = window.open('http://google.com/maps/search/'+state.gmapval, '_blank');
+    window.open('http://google.com/maps/search/'+state.gmapval, '_blank');
   }
   function handleSubmit(e) {
     console.log(state);
@@ -68,7 +68,7 @@ export default function AddNewPlaces() {
       });
   }
   function checkData(){
-    if(state.placename!='' && state.type!='' && state.address!='' && state.latitude!=''){
+    if(state.placename!=='' && state.type!=='' && state.address!=='' && state.latitude!==''){
       setCheck(false);
     }
     else{

@@ -38,6 +38,43 @@ const session = driver.session({
 const addplacesession = driver.session({
   defaultAccessMode: neo4j.session.WRITE
 });
+const sessionnearest1 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest2 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest3 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest4 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest5 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest6 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest7 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest8 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest9 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest10 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest11 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+const sessionnearest12 = driver.session({
+  defaultAccessMode: neo4j.session.READ
+});
+
 
 
 ////////////////////////////////React App//////////////////////////////
@@ -137,7 +174,7 @@ function pushData(result) {
 
 function queryDatabase(parameters) {
   return new Promise((resolve, reject) => {
-    client.query('Select the_geom, busstoprating, collegerating, parkrating, gymrating, railwayrating, restaurantrating, schoolrating, airportrating, centerrating, centroid_latitude, centroid_longitude from public."blocks" r Where ST_Intersects(ST_Transform(r.the_geom, 4326), ST_Transform(ST_Buffer(ST_SetSRID(ST_Point($1,$2), 4326), 0.015), 4326))', parameters, (err, res) => {
+    client.query('Select id_0, the_geom, busstoprating, collegerating, parkrating, gymrating, railwayrating, restaurantrating, schoolrating, airportrating, centerrating, centroid_latitude, centroid_longitude from public."blocks" r Where ST_Intersects(ST_Transform(r.the_geom, 4326), ST_Transform(ST_Buffer(ST_SetSRID(ST_Point($1,$2), 4326), 0.015), 4326))', parameters, (err, res) => {
       if (err) {
         console.log(err.stack);
       } else {
@@ -160,7 +197,6 @@ function getColor(valuation) {
   var range = maxValuation - minValuation;
 
   // A 'relative' rating compared to all values.
-  // Will be in the range between 0.0 and 1.0
   var relativeRating = (valuation - minValuation) / (range * 1.0);
 
   if (relativeRating > 0.8) return '#54d83a';
@@ -562,6 +598,221 @@ app.get("/api/getmarkers", (req, res) => {
     .then(r=> {res.send(data)});
 });
 
+
+/////////////////////Send nearest markers data///////////////////////////
+app.get("/api/getnearest", (req, res) => {
+  var nearestdata = {
+    'ATM': {}, 
+    'Bank': {}, 
+    'BusStop': {},
+    'College': {},
+    'Garden/Park': {},
+    'GeneralStores': {},
+    'Gym': {},
+    'Hospital': {},
+    'PoliceStation':{}, 
+    'RailwayStation': {}, 
+    'Restaurant':{}, 
+    'School': {}
+  };
+  
+  sessionnearest1.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'ATM'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['ATM'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+    //console.log(nodetype);
+    
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest2.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'Bank'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['Bank'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+    //console.log(nodetype);  
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest3.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'BusStop'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['BusStop'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+    //console.log(nodetype);
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest4.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'College'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['College'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+    //console.log(nodetype);
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest5.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'Garden/Park'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['Garden/Park'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest6.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'GeneralStores'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['GeneralStores'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};  
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest7.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'Gym'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['Gym'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]}; 
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest8.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'Hospital'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['Hospital'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest9.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'PoliceStation'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['PoliceStation'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};  
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest10.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'RailwayStation'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['RailwayStation'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+  sessionnearest11.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'Restaurant'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['Restaurant'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+    res.send(nearestdata);
+  });
+
+  sessionnearest12.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+    id_0: parseInt(req.query.id_0),
+    type: 'School'
+  })
+  .then(result => {
+    //console.log(result.records[0]._fields[0]);
+    nearestdata['School'] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+  })
+  .catch(err => {
+    console.log(err);
+  }).then(() => {
+    //console.log(nearestdata);
+  });
+
+
+  // ['ATM', 'Bank', 'BusStop', 'College', 'Garden/Park', 'GeneralStores', 'Gym', 'Hospital', 'PoliceStation', 'RailwayStation', 'Restaurant', 'School'].map(nodetype => {
+  //   console.log(nodetype);
+  //   sessionnearest.run("MATCH path = shortestPath((b:block {id_0:$id_0})-[*0..20]-> (a:marker {type: $type})) WITH collect(path) AS paths, min(length(path)) AS minlen WITH [p IN paths WHERE length(p)= minlen] AS smallpath, minlen AS minilen WITH LAST(nodes(smallpath[0])) AS col, minilen-1 AS hops MATCH (col)<-[h:HAS]-(c:block) RETURN properties(col), ((hops*500)+h.distance) as distance", {
+  //     id_0: parseInt(req.query.id_0),
+  //     type: 'ATM'
+  //   })
+  //   .then(result => {
+  //     console.log(result.records[0]._fields[0]);
+  //     nearestdata[nodetype] = { ...result.records[0]._fields[0] , distance: result.records[0]._fields[1]};
+
+  //   })
+  //   .catch(err => {
+  //     console.log(err);
+  //   }).then(() => {
+  //     console.log(nearestdata);
+  //   })
+  // });
+  //console.log(nearestdata);
+  // setTimeout(()=> {
+  //   res.send(nearestdata);
+  // }, 5000);
+});
 
 //////////////////////////////Port Setup////////////////////////////////
 app.listen(process.env.PORT || "5000", function(err) {
