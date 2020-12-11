@@ -42,14 +42,14 @@ export default function AddNewPlaces() {
       ...state,
       [e.target.name]: e.target.value
     });
-    console.log(e.target.name + ', ' + e.target.value);
+    //console.log(e.target.name + ', ' + e.target.value);
     checkData();
   }
   function handleSearch(e) {
     window.open('http://google.com/maps/search/'+state.gmapval, '_blank');
   }
   function handleSubmit(e) {
-    console.log(state);
+    //console.log(state);
     let data = {
       type: state.type,
       name: state.placename,
@@ -59,8 +59,11 @@ export default function AddNewPlaces() {
     };
     axios
       .post('http://localhost:5000/api/addnewplace', data)
-      .then(() => {
-        console.log("success");
+      .then((res) => {
+        if(res.data === 'error'){
+          alert("This place doesn't seem to be in Mumbai region.");
+        }
+        //console.log("success");
         history.push('/');
       })
       .catch(err => {
@@ -83,7 +86,7 @@ export default function AddNewPlaces() {
       if(e.target.value){
         let spliturl = e.target.value.split('@');
         let coords = spliturl[1].split(',');
-        console.log(coords);
+        //console.log(coords);
         setState({
           ...state,
           [e.target.name]: e.target.value,

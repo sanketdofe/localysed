@@ -97,7 +97,7 @@ const useStyles = makeStyles((theme) => ({
   collapseBottombar: {
     position: 'absolute',
     left: '49.5%',
-    top: '48%',
+    top: '46%',
     transform: 'translate(-50%, -50%)'
   },
   list: {

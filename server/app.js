@@ -25,6 +25,22 @@ const client = new Client({
   port: process.env.DB_PORT
 });
 client.connect();
+const client2 = new Client({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+  password: process.env.DB_PASS,
+  port: process.env.DB_PORT
+});
+client2.connect();
+const client3 = new Client({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+  password: process.env.DB_PASS,
+  port: process.env.DB_PORT
+});
+client3.connect();
 
 
 //////////////////////////////Neo4J connection//////////////////////////
@@ -85,20 +101,83 @@ app.get("/", (req, res) => {
 
 ////////////////////////Add New places in Neo4J//////////////////////////
 app.post("/api/addnewplace", (req, res) => {
-  console.log(req.body);
-  addplacesession
-    .run("MERGE (a:marker {name : $name, type: $type, address: $address, location:point({ latitude:$lat, longitude:$long, crs:'wgs-84'})}) RETURN a", {
-      name: req.body.name,
-      address: req.body.address,
-      type: req.body.type,
-      lat: parseFloat(req.body.latitude),
-      long: parseFloat(req.body.longitude)
-    })
-    .then(result => {
-        //console.log(result.records._fields);
-    })
-    .catch(error => {console.log(error)})
-    .then(r=> {res.send('success')});
+  //console.log(req.body);
+  const typeratingnormal = {
+    BusStop: {
+      name: 'busstoprating',
+      factor: 0.167
+    },
+    College: {
+      name: 'collegerating',
+      factor: 0.125
+    },
+    'Garden/Park': {
+      name: 'parkrating',
+      factor: 0.11
+    },
+    Gym: {
+      name: 'gymrating',
+      factor: 0.125 
+    },
+    RailwayStation: {
+      name: 'railwayrating',
+      factor: 0.33
+    },
+    Restaurant: {
+      name: 'restaurantrating',
+      factor: 0.03125
+    },
+    School: {
+      name: 'schoolrating',
+      factor: 0.5
+    }
+  }
+  client.query('SELECT * FROM public.blocks b WHERE ST_Contains(b.the_geom, ST_SetSRID(ST_Point($1, $2), 4326))', [parseFloat(req.body.longitude), parseFloat(req.body.latitude)])
+  .then(result => {
+    //console.log(result.rows[0]);
+    if(result.rows.length === 1){
+      //console.log('type' + req.body.type);
+      var column = typeratingnormal[req.body.type].name;
+      var newrating = result.rows[0][column] + typeratingnormal[req.body.type].factor;
+      //console.log(newrating);
+      //console.log(column);
+      if(newrating>1){
+        newrating = 1;
+      }
+      addplacesession
+      .run("MERGE (a:marker {name : $name, type: $type, address: $address, location:point({ latitude:$lat, longitude:$long, crs:'wgs-84'})}) WITH a as newnode MATCH (b:block {id_0: $id_0}) WITH b as reqblock, newnode as newmarker MERGE (newmarker)<-[:HAS {distance: distance(point({x: $cent_long, y: $cent_lat, crs:'wgs-84'}), newmarker.location)}]-(reqblock) return reqblock", {
+        name: req.body.name,
+        address: req.body.address,
+        type: req.body.type,
+        lat: parseFloat(req.body.latitude),
+        long: parseFloat(req.body.longitude),
+        cent_long: result.rows[0].centroid_longitude,
+        cent_lat: result.rows[0].centroid_latitude,
+        id_0: result.rows[0].id_0
+      })
+      .then(resultgraph => {
+          //console.log(resultgraph.records._fields);
+          client2.query('INSERT INTO public.marker(geom, type, name, address, latitude, longitude) VALUES (ST_SetSRID( ST_Point( $5, $4), 4326), $1, $2, $3, $4, $5)', [req.body.type, req.body.name, req.body.address, parseFloat(req.body.latitude), parseFloat(req.body.longitude)])
+          .then(resu => {
+            
+            client3.query('UPDATE public.blocks SET ' + column + ' = $1 WHERE id_0 = $2', [newrating, result.rows[0].id_0])
+            .then(() => {
+              res.send('success');
+            })
+            .catch(error => {console.log(error)});
+          })
+          .catch(error => {console.log(error)})
+      })
+      .catch(error => {console.log(error)})
+      .then(r => {
+        // res.send('success');
+      });
+    }
+    else{
+      res.send('error');
+    }
+  })
+  .catch(e => console.log(e));
 });
 
 
