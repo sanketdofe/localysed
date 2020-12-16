@@ -111,7 +111,7 @@ const useStyles = makeStyles((theme) => ({
     zIndex: '1'
   }
 }));
-var geodata, geomark;
+var geodata, geomark, selectedblock;
 const MainMap = () => {
   const classes = useStyles();
   const [map, setMap] = useState(null);
@@ -339,6 +339,53 @@ const MainMap = () => {
           },
           'opacity': 1,
         });
+        selectedblock = {
+          type: "FeatureCollection",
+          features: [
+            {"type":"Feature",
+            "geometry":{
+              "type":"Polygon",
+              "coordinates":[
+                [[72.81786420463439,18.969654815098597],
+                [72.82028058333705,18.971754783627798],
+                [72.82248780446669,18.969455833001877],
+                [72.82007143483122,18.96735593033735],
+                [72.81786420463439,18.969654815098597]
+              ]]
+            },
+            "properties":{
+              "id_0":511,
+              "busstoprating":0.5001,
+              "collegerating":0,
+              "parkrating":0,
+              "gymrating":0.125,
+              "railwayrating":0.333,
+              "restaurantrating":0.46875,
+              "schoolrating":0,
+              "airportrating":0.877994447,
+              "centerrating":0.976840632,
+              "centroid_latitude":18.969555346047613,
+              "centroid_longitude":72.82017600658568,
+              "personaldistance":1,
+              "color":"#54d83a"},
+              "valuation":1.8749300000000002}
+          ]
+        }
+        map.addSource('selectblock', {
+          'type': 'geojson',
+          'data': selectedblock
+        });
+        map.addLayer({
+          'id': 'selectedblock',
+          'type': 'fill',
+          'source': 'selectblock',
+          'paint': {
+            'fill-color': '#00FDFF',
+            'fill-opacity': 0.3,
+            "fill-outline-color": '#D3D3D3',
+          },
+          'opacity': 1,
+        });
         Promise.all(
           markers.map(marker => new Promise((resolve, reject) => {
               //console.log(marker.name);
@@ -376,6 +423,11 @@ const MainMap = () => {
         //console.log('click');
         setBottombar(false);
         setNeareststate(false);
+        selectedblock = {
+          type: "FeatureCollection",
+          features: geodata.features.filter(feature => feature.properties.id_0 === blockid)
+        }
+        map.getSource('selectblock').setData(selectedblock);
         axios
         .get('http://localhost:5000/api/getmarkers', {
             params: {
@@ -417,10 +469,13 @@ const MainMap = () => {
               coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
           }
 
-          new mapboxgl.Popup()
+          var popupmarker = new mapboxgl.Popup()
           .setLngLat(coordinates)
           .setHTML(description)
           .addTo(map);
+          setTimeout(()=> {
+            popupmarker.remove();
+          }, 5000);
       });
       // Change the cursor to a pointer when the mouse is over the blocks layer.
       map.on('mouseenter', 'blocks', function () {
@@ -529,6 +584,13 @@ const MainMap = () => {
         center: [nearestdata[value].location.x ,nearestdata[value].location.y-0.004],
         essential: true
       });
+      var popup = new mapboxgl.Popup()
+          .setLngLat([nearestdata[value].location.x ,nearestdata[value].location.y+0.0005])
+          .setHTML(nearestdata[value].name)
+          .addTo(map);
+      setTimeout(()=> {
+        popup.remove();
+      }, 5000);
     });
   }
 
